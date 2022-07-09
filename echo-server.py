@@ -7,6 +7,7 @@
 # Works with both Python 2 & 3.
 
 import socket
+import time
 
 sock = socket.socket(socket.AF_INET, socket.SOCK_DGRAM)
 
@@ -24,6 +25,10 @@ def convert_client_address_to_bytes(client_address):
     return str(client_address[0]).encode() + b':' + str(client_address[1]).encode()
 
 
+def create_another_client_message(client_address):
+    return b's:connect:' + convert_client_address_to_bytes(client_address)
+
+
 while True:
     client_id, client_address = sock.recvfrom(1000)
     print("Client address: ", str(client_address), ". Client id: ", client_id)
@@ -32,16 +37,20 @@ while True:
 
     if len(clients) == 2:
 
-        send_to_second_client = convert_client_address_to_bytes(clients[b'1'])
-        sent = sock.sendto(send_to_second_client, clients[b'2'])
-        print("Sent to the second client(" + str(clients[b'2']) + ") information about the first: ", str(send_to_second_client), flush=True)
+        max_amount_of_iterations = 5
+        for _ in range(max_amount_of_iterations):
+            send_to_second_client = create_another_client_message(clients[b'1'])
+            sent = sock.sendto(send_to_second_client, clients[b'2'])
+            print("Sent to the second client(" + str(clients[b'2']) + ") information about the first: ", str(send_to_second_client), flush=True)
 
-        send_to_first_client = convert_client_address_to_bytes(clients[b'2'])
-        sent = sock.sendto(send_to_first_client, clients[b'1'])
-        print("Sent to the first client(" + str(clients[b'1']) + ") information about the second: ", str(send_to_first_client), flush=True)
+            send_to_first_client = create_another_client_message(clients[b'2'])
+            sent = sock.sendto(send_to_first_client, clients[b'1'])
+            print("Sent to the first client(" + str(clients[b'1']) + ") information about the second: ", str(send_to_first_client), flush=True)
 
-        # clients.clear()
+            time.sleep(0.5)
+
+        clients.clear()
 
     else:
-        sent = sock.sendto(b'wait', client_address)
+        sent = sock.sendto(b's:wait', client_address)
         print("Sent results: ", str(sent), flush=True)
